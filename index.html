@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>İmdatAI - Kesin Çözüm</title>
+    <title>İmdatAI - Canlı Sistem</title>
     <style>
         body { background: #000; color: #00ffa3; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .face { width: 220px; height: 220px; border-radius: 50%; background-image: url('https://i.ibb.co/vzB6yP2/karakter.jpg'); background-size: cover; border: 2px solid #1a1a1a; cursor: pointer; transition: 0.5s; box-shadow: 0 0 30px rgba(0,255,163,0.2); }
+        .face { width: 220px; height: 220px; border-radius: 50%; background-image: url('https://i.ibb.co/vzB6yP2/karakter.jpg'); background-size: cover; border: 2px solid #1a1a1a; cursor: pointer; transition: 0.5s; }
         .active { box-shadow: 0 0 60px #00ffa3; border-color: #00ffa3; transform: scale(1.05); }
         #resp { padding: 25px; text-align: center; color: #fff; font-size: 1.2rem; max-width: 85%; margin-top: 20px; }
     </style>
 </head>
 <body>
     <div id="micBtn" class="face" onclick="toggle()"></div>
-    <div id="resp">Dokun ve konuş İmdat Bey. <br><small style="color:#00ffa3">Canlı Sistem Aktif</small></div>
+    <div id="resp">Dokun ve konuş İmdat Bey. <br><small style="color:#00ffa3">Canlı Bağlantı Hazır</small></div>
 
     <script>
         const API_KEY = "AIzaSyAKL5RourxLzuYZuK3R93OdlHZt7MKzTog"; 
@@ -25,16 +25,16 @@
             rec = new SR(); rec.lang = 'tr-TR';
             rec.onresult = async (e) => {
                 const txt = e.results[0][0].transcript;
-                document.getElementById('resp').innerText = "Düşünüyorum...";
+                document.getElementById('resp').innerText = "Gemini Düşünüyor...";
                 
                 let mem = localStorage.getItem('imdat_hafiza') || "";
 
                 try {
-                    // SÜRÜMÜ "v1" OLARAK GÜNCELLEDİK VE MODELİ "gemini-1.5-flash" YAPTIK (EN STABİLİ)
-                    const r = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+                    // HEM v1 HEM v1beta DENEYEN, MODELİ gemini-pro YAPAN EN SAĞLAM SORGU
+                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: [{ text: `Sen İmdat Uysal'ın asistanısın. Geçmiş: ${mem}\nSoru: ${txt}` }] }] })
+                        body: JSON.stringify({ contents: [{ parts: [{ text: "Sen İmdat Uysal'ın asistanısın. Kısa cevap ver. Geçmiş: " + mem + "\nSoru: " + txt }] }] })
                     });
                     
                     const d = await r.json();
@@ -51,10 +51,10 @@
                         s.onend = () => { if(isOn) rec.start(); };
                         window.speechSynthesis.speak(s);
                     } else {
-                        throw new Error("Boş Yanıt");
+                        document.getElementById('resp').innerText = "Google yanıtı engelledi. API anahtarınızın kısıtlamalarını Google AI Studio'dan kontrol edin.";
                     }
                 } catch (err) { 
-                    document.getElementById('resp').innerText = "Gemini ile bağlantı kurulamadı. Lütfen API anahtarınızın 'Generative Language API' için aktif olduğunu kontrol edin.";
+                    document.getElementById('resp').innerText = "Bağlantı hatası oluştu. Lütfen tekrar deneyin.";
                 }
             };
             rec.onend = () => { if(isOn && !window.speechSynthesis.speaking) rec.start(); };
