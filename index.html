@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İmdatAI - GitHub Live</title>
+    <style>
+        body { background: #000; color: #00ffa3; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
+        .face { 
+            width: 220px; height: 220px; border-radius: 50%; border: 2px solid #1a1a1a;
+            background-image: url('https://i.ibb.co/vzB6yP2/karakter.jpg'); 
+            background-size: cover; background-position: center; cursor: pointer; transition: 0.5s;
+            box-shadow: 0 0 30px rgba(0,255,163,0.2);
+        }
+        .active { box-shadow: 0 0 60px #00ffa3; border-color: #00ffa3; transform: scale(1.05); }
+        #resp { padding: 25px; text-align: center; color: #fff; font-size: 1.2rem; max-width: 85%; margin-top: 20px; text-shadow: 0 0 10px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
+    <div id="micBtn" class="face" onclick="toggle()"></div>
+    <div id="resp">Dokun ve konuş İmdat Bey. <br><small style="color:#00ffa3">GitHub üzerinden canlı bağlantı aktif.</small></div>
+
+    <script>
+        const API_KEY = "AIzaSyAKL5RourxLzuYZuK3R93OdlHZt7MKzTog"; 
+
+        let rec, isOn = false;
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (SR) {
+            rec = new SR(); rec.lang = 'tr-TR';
+            rec.onresult = async (e) => {
+                const txt = e.results[0][0].transcript;
+                document.getElementById('resp').innerText = "Düşünüyorum...";
+                
+                // Hafızayı LocalStorage'dan alıyoruz (GitHub'da kalıcıdır)
+                let mem = localStorage.getItem('imdat_hafiza') || "";
+
+                try {
+                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: `Sen İmdat Uysal'ın asistanısın. Geçmiş: ${mem}\nSoru: ${txt}` }] }] })
+                    });
+                    
+                    const d = await r.json();
+                    const reply = d.candidates[0].content.parts[0].text;
+                    
+                    document.getElementById('resp').innerText = reply;
+                    
+                    // Hafızayı güncelle
+                    mem += `\nİmdat: ${txt}\nAsistan: ${reply}`;
+                    localStorage.setItem('imdat_hafiza', mem.slice(-3000));
+                    
+                    const s = new SpeechSynthesisUtterance(reply); s.lang = 'tr-TR';
+                    s.onend = () => { if(isOn) rec.start(); };
+                    window.speechSynthesis.speak(s);
+                } catch (err) { 
+                    document.getElementById('resp').innerText = "Bağlantı başarılı ama Gemini yanıt vermedi. Anahtarı kontrol edin.";
+                }
+            };
+            rec.onend = () => { if(isOn && !window.speechSynthesis.speaking) rec.start(); };
+        }
+
+        function toggle() {
+            if (!isOn) { isOn = true; rec.start(); document.getElementById('micBtn').classList.add('active'); }
+            else { isOn = false; rec.stop(); window.speechSynthesis.cancel(); document.getElementById('micBtn').classList.remove('active'); }
+        }
+    </script>
+</body>
+</html>
