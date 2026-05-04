@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>İmdatAI - Canlı Sistem</title>
+    <title>İmdatAI - Final</title>
     <style>
         body { background: #000; color: #00ffa3; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
         .face { width: 220px; height: 220px; border-radius: 50%; background-image: url('https://i.ibb.co/vzB6yP2/karakter.jpg'); background-size: cover; border: 2px solid #1a1a1a; cursor: pointer; transition: 0.5s; }
@@ -13,10 +13,11 @@
 </head>
 <body>
     <div id="micBtn" class="face" onclick="toggle()"></div>
-    <div id="resp">Dokun ve konuş İmdat Bey. <br><small style="color:#00ffa3">Canlı Bağlantı Hazır</small></div>
+    <div id="resp">Dokun ve konuş İmdat Bey. <br><small style="color:#00ffa3">Sistem Bağlantısı Test Ediliyor...</small></div>
 
     <script>
-        const API_KEY = "AIzaSyAKL5RourxLzuYZuK3R93OdlHZt7MKzTog"; 
+        // YENİ ALDIĞINIZ ANAHTARI BURAYA YAPIŞTIRIN
+        const API_KEY = "AIzaSyBIjo1_q2JJgzlSc-EvLDGfUwuWTFCL1bU"; 
 
         let rec, isOn = false;
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -25,41 +26,28 @@
             rec = new SR(); rec.lang = 'tr-TR';
             rec.onresult = async (e) => {
                 const txt = e.results[0][0].transcript;
-                document.getElementById('resp').innerText = "Gemini Düşünüyor...";
-                
-                let mem = localStorage.getItem('imdat_hafiza') || "";
-
+                document.getElementById('resp').innerText = "Düşünüyorum...";
                 try {
-                    // HEM v1 HEM v1beta DENEYEN, MODELİ gemini-pro YAPAN EN SAĞLAM SORGU
-                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`, {
+                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: [{ text: "Sen İmdat Uysal'ın asistanısın. Kısa cevap ver. Geçmiş: " + mem + "\nSoru: " + txt }] }] })
+                        body: JSON.stringify({ contents: [{ parts: [{ text: "Sen İmdat Uysal'ın asistanısın. Kısa ve öz konuş. Soru: " + txt }] }] })
                     });
-                    
                     const d = await r.json();
-                    
-                    if (d.candidates && d.candidates[0].content.parts[0].text) {
+                    if (d.candidates) {
                         const reply = d.candidates[0].content.parts[0].text;
                         document.getElementById('resp').innerText = reply;
-                        
-                        mem += `\nİmdat: ${txt}\nAsistan: ${reply}`;
-                        localStorage.setItem('imdat_hafiza', mem.slice(-3000));
-                        
-                        const s = new SpeechSynthesisUtterance(reply); 
-                        s.lang = 'tr-TR';
+                        const s = new SpeechSynthesisUtterance(reply); s.lang = 'tr-TR';
                         s.onend = () => { if(isOn) rec.start(); };
                         window.speechSynthesis.speak(s);
                     } else {
-                        document.getElementById('resp').innerText = "Google yanıtı engelledi. API anahtarınızın kısıtlamalarını Google AI Studio'dan kontrol edin.";
+                        document.getElementById('resp').innerText = "Hata: " + (d.error ? d.error.message : "API Yanıt Vermedi");
                     }
                 } catch (err) { 
-                    document.getElementById('resp').innerText = "Bağlantı hatası oluştu. Lütfen tekrar deneyin.";
+                    document.getElementById('resp').innerText = "Bağlantı koptu. Tekrar deneyin.";
                 }
             };
-            rec.onend = () => { if(isOn && !window.speechSynthesis.speaking) rec.start(); };
         }
-
         function toggle() {
             if (!isOn) { isOn = true; rec.start(); document.getElementById('micBtn').classList.add('active'); }
             else { isOn = false; rec.stop(); window.speechSynthesis.cancel(); document.getElementById('micBtn').classList.remove('active'); }
