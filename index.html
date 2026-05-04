@@ -3,20 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>İmdatAI - Final Sürüm</title>
+    <title>İmdatAI - Final Sistem</title>
     <style>
-        body { background: #000; color: #00ffa3; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        body { background: #000; color: #00ffa3; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
         .face { width: 220px; height: 220px; border-radius: 50%; background-image: url('https://i.ibb.co/vzB6yP2/karakter.jpg'); background-size: cover; border: 2px solid #1a1a1a; cursor: pointer; transition: 0.5s; box-shadow: 0 0 30px rgba(0,255,163,0.3); }
         .active { box-shadow: 0 0 60px #00ffa3; border-color: #00ffa3; transform: scale(1.05); }
-        #resp { padding: 25px; text-align: center; color: #fff; font-size: 1.2rem; max-width: 85%; margin-top: 20px; }
+        #resp { padding: 25px; text-align: center; color: #fff; font-size: 1.2rem; max-width: 85%; margin-top: 20px; text-shadow: 0 0 10px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
     <div id="micBtn" class="face" onclick="toggle()"></div>
-    <div id="resp">Dokun ve konuş İmdat Bey. <br><small style="color:#00ffa3">Bağlantı Stabilize Edildi</small></div>
+    <div id="resp">Sizi dinliyorum İmdat Bey. <br><small style="color:#00ffa3">Bağlantı Stabil (v1)</small></div>
 
     <script>
-        const API_KEY = "AIzaSyBIjo1_q2JJgzlSc-EvLDGfUwuWTFCL1bU"; 
+        // YENİ ALDIĞINIZ ANAHTARI AŞAĞIYA YAPIŞTIRIN
+        const API_KEY = "AIzaSyAcRk30t4ENFZDmzws7aDagAGIrWtmJunk"; 
 
         let rec, isOn = false;
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -27,30 +28,37 @@
                 const txt = e.results[0][0].transcript;
                 document.getElementById('resp').innerText = "Düşünüyorum...";
                 
+                let mem = localStorage.getItem('imdat_hafiza') || "";
+
                 try {
-                    // Sürümü v1 yaptık ve model ismini en yalın haline getirdik
-                    const r = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${API_KEY}`, {
+                    // En güvenli model ve kararlı sürüm kombinasyonu (v1)
+                    const r = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: [{ text: "Sen İmdat Uysal'ın asistanısın. Kısa konuş. Soru: " + txt }] }] })
+                        body: JSON.stringify({ contents: [{ parts: [{ text: "Sen İmdat Uysal'ın asistanısın. Geçmiş: " + mem + "\nSoru: " + txt }] }] })
                     });
                     
                     const d = await r.json();
                     
-                    if (d.candidates && d.candidates[0].content.parts[0].text) {
+                    if (d.candidates && d.candidates[0].content && d.candidates[0].content.parts[0].text) {
                         const reply = d.candidates[0].content.parts[0].text;
                         document.getElementById('resp').innerText = reply;
+                        
+                        // Hafızayı güncelle (Cihaz bazlı yedekleme)
+                        mem += `\nİmdat: ${txt}\nAsistan: ${reply}`;
+                        localStorage.setItem('imdat_hafiza', mem.slice(-3000));
                         
                         const s = new SpeechSynthesisUtterance(reply); 
                         s.lang = 'tr-TR';
                         s.onend = () => { if(isOn) rec.start(); };
                         window.speechSynthesis.speak(s);
                     } else {
-                        // Eğer hala model hatası verirse burası detaylı hata döner
-                        document.getElementById('resp').innerText = "Cevap alınamadı: " + (d.error ? d.error.message : "Bilinmeyen hata");
+                        // Google hata verirse burası yakalar
+                        const errMsg = d.error ? d.error.message : "API yanıtı boş döndü.";
+                        document.getElementById('resp').innerText = "Hata oluştu: " + errMsg;
                     }
                 } catch (err) { 
-                    document.getElementById('resp').innerText = "Bağlantı koptu. Lütfen sayfayı yenileyip tekrar deneyin.";
+                    document.getElementById('resp').innerText = "Bağlantı koptu. Lütfen sayfayı yenileyin.";
                 }
             };
             rec.onend = () => { if(isOn && !window.speechSynthesis.speaking) rec.start(); };
